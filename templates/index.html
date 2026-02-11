@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Recognition System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0e1a; color: #fff; overflow-x: hidden; }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        .content { position: relative; z-index: 1; }
+        .hero { text-align: center; padding: 60px 20px 40px; background: linear-gradient(180deg, rgba(30,60,114,0.3) 0%, transparent 100%); }
+        .hero h1 { font-size: 2.8rem; margin-bottom: 15px; color: #3282b8; text-shadow: 0 0 20px rgba(50,130,184,0.5); }
+        .hero p { font-size: 1.1rem; color: #b8c5d6; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; }
+        .start-section { text-align: center; padding: 40px 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .btn-start { padding: 20px 50px; font-size: 1.2rem; background: linear-gradient(135deg, #0f4c75, #3282b8); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 30px rgba(50,130,184,0.4); transition: all 0.3s; min-width: 220px; }
+        .btn-start:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(50,130,184,0.6); }
+        .btn-start .btn-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; }
+        .btn-start .btn-label { font-size: 1rem; }
+        .btn-start .btn-desc { font-size: 0.7rem; opacity: 0.7; margin-top: 5px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+        .detection-section { display: none; }
+        .detection-section.active { display: block; }
+        .back-btn { position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #b8c5d6; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.5px; }
+        .back-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+        .viewer-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); margin-bottom: 30px; }
+        #cctv-viewer, #cctv-viewer2 { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 1.2rem; border: 2px solid rgba(50,130,184,0.3); margin-bottom: 15px; overflow: hidden; position: relative; }
+        #videoStream, #videoStream2 { width: 100%; height: 100%; object-fit: contain; display: none; }
+        #placeholderText, #placeholderText2 { position: absolute; }
+        .loading-spinner { position: absolute; display: none; width: 50px; height: 50px; border: 5px solid rgba(50,130,184,0.3); border-top: 5px solid #3282b8; border-radius: 50%; animation: spin 1s linear infinite; }
+        .loading-spinner.show { display: block; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        .alert-panel { background: rgba(244,67,54,0.1); border: 2px solid rgba(244,67,54,0.3); border-radius: 12px; padding: 15px 20px; margin-bottom: 15px; display: none; }
+        .alert-panel.show { display: block; animation: pulse 2s infinite; }
+        .alert-panel.safe { background: rgba(76,175,80,0.1); border-color: rgba(76,175,80,0.3); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .alert-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .alert-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .alert-badge { background: rgba(244,67,54,0.8); padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+        .safe-badge { background: rgba(76,175,80,0.8); }
+        .controls-bar { display: flex; justify-content: center; gap: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 30px; margin-top: 60px; }
+        .card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: rgba(50,130,184,0.3); }
+        .card h3 { font-size: 1.3rem; margin-bottom: 20px; color: #3282b8; display: flex; align-items: center; gap: 10px; }
+        .card h3::before { content:''; width:3px; height:22px; background:linear-gradient(135deg,#2a5298,#3282b8); border-radius:2px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #b8c5d6; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="text"], select { width: 100%; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 1rem; background: rgba(255,255,255,0.05); color: #fff; transition: all 0.3s; }
+        select { cursor: pointer; }
+        select option { background: #1e3c72; color: #fff; }
+        input[type="text"]:focus, select:focus { outline: none; border-color: #3282b8; box-shadow: 0 0 0 3px rgba(50,130,184,0.2); }
+        input[type="file"] { width: 100%; padding: 12px; border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; background: rgba(255,255,255,0.03); color: #b8c5d6; transition: all 0.3s; }
+        input[type="file"]:hover { border-color: #3282b8; }
+        .btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.8px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: linear-gradient(135deg,#1e3c72,#2a5298); color: white; box-shadow: 0 4px 15px rgba(30,60,114,0.4); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); }
+        .btn-danger { background: linear-gradient(135deg,#c62828,#d32f2f); color: white; }
+        .btn-danger:hover:not(:disabled) { transform: translateY(-2px); }
+        .btn-small { padding: 8px 16px; font-size: 0.8rem; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #b8c5d6; }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); color: white; }
+        .status { margin-top: 15px; padding: 12px 16px; border-radius: 8px; font-weight: 500; display: none; border-left: 4px solid; }
+        .status.show { display: block; }
+        .status.success { background: rgba(76,175,80,0.2); color: #4caf50; border-color: #4caf50; }
+        .status.error { background: rgba(244,67,54,0.2); color: #f44336; border-color: #f44336; }
+        .status.info { background: rgba(33,150,243,0.2); color: #2196f3; border-color: #2196f3; }
+        #faceList { list-style: none; }
+        #faceList li { background: rgba(255,255,255,0.05); padding: 14px 18px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
+        #faceList li:hover { background: rgba(50,130,184,0.15); }
+        #faceList li span { font-weight: 600; }
+        .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.4); }
+        .search-wrapper { position: relative; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: #1a2744; border: 1px solid rgba(50,130,184,0.3); border-top: none; border-radius: 0 0 8px 8px; max-height: 250px; overflow-y: auto; z-index: 100; display: none; }
+        .search-results.show { display: block; }
+        .search-item { padding: 10px 16px; cursor: pointer; font-size: 0.9rem; color: #b8c5d6; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .search-item:hover { background: rgba(50,130,184,0.2); color: #fff; }
+        .search-item .match { color: #3282b8; font-weight: 600; }
+        .search-item .custom-tag { background: rgba(50,130,184,0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 8px; color: #3282b8; }
+        .backend-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; }
+        .backend-badge.open-vocab { background: rgba(76,175,80,0.2); color: #4caf50; border: 1px solid rgba(76,175,80,0.3); }
+        .backend-badge.limited { background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
+        .category-section { margin-bottom: 15px; }
+        .category-title { color: #3282b8; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; text-transform: uppercase; }
+        .object-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .object-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; color: #8899aa; cursor: pointer; transition: all 0.2s; }
+        .object-tag:hover { background: rgba(50,130,184,0.2); color: #3282b8; border-color: rgba(50,130,184,0.3); }
+        .target-list { margin-top: 20px; }
+        .target-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .target-list-header h4 { color: #3282b8; font-size: 1rem; }
+        .target-count { background: rgba(50,130,184,0.2); color: #3282b8; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .target-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .target-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.3); }
+        .target-info { flex: 1; }
+        .target-name { font-weight: 600; font-size: 0.95rem; }
+        .target-filter { font-size: 0.8rem; color: #8899aa; margin-top: 2px; }
+        .target-remove { background: rgba(244,67,54,0.15); border: 1px solid rgba(244,67,54,0.3); color: #f44336; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; flex-shrink: 0; }
+        .target-remove:hover { background: rgba(244,67,54,0.3); }
+        .no-targets { text-align: center; padding: 25px; color: rgba(255,255,255,0.3); font-size: 0.9rem; }
+        .video-upload-area { border: 2px dashed rgba(50,130,184,0.3); border-radius: 12px; padding: 30px; text-align: center; margin: 15px 0; transition: all 0.3s; cursor: pointer; }
+        .video-upload-area:hover { border-color: #3282b8; background: rgba(50,130,184,0.05); }
+        .video-upload-area.dragover { border-color: #3282b8; background: rgba(50,130,184,0.1); }
+        .video-upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .progress-bar-container { background: rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; height: 8px; margin: 15px 0; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #1e3c72, #3282b8); border-radius: 8px; transition: width 0.3s; width: 0%; }
+        .progress-text { font-size: 0.85rem; color: #b8c5d6; text-align: center; margin-top: 5px; }
+        .result-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .result-found { color: #4caf50; font-weight: 700; font-size: 1.1rem; }
+        .result-not-found { color: #f44336; font-weight: 700; font-size: 1.1rem; }
+        .detection-item { display: flex; gap: 15px; padding: 15px; margin-bottom: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
+        .detection-screenshot { width: 200px; height: 130px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(50,130,184,0.3); cursor: pointer; transition: all 0.3s; flex-shrink: 0; }
+        .detection-screenshot:hover { border-color: #3282b8; transform: scale(1.02); }
+        .detection-details { flex: 1; }
+        .detection-timestamp { color: #3282b8; font-weight: 700; font-size: 1rem; margin-bottom: 5px; }
+        .detection-object { color: #fff; font-weight: 600; margin-bottom: 3px; }
+        .detection-meta { color: #8899aa; font-size: 0.85rem; }
+        .video-target-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(50,130,184,0.15); border: 1px solid rgba(50,130,184,0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; color: #3282b8; margin: 3px; }
+        .video-target-chip .chip-remove { cursor: pointer; color: #f44336; font-weight: 700; margin-left: 4px; }
+        .video-target-chip .chip-remove:hover { color: #ff6659; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { max-width: 90vw; max-height: 90vh; position: relative; }
+        .modal-content img { max-width: 100%; max-height: 85vh; border-radius: 8px; }
+        .modal-close { position: absolute; top: -15px; right: -15px; width: 36px; height: 36px; background: #f44336; border: none; border-radius: 50%; color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-info { color: #b8c5d6; text-align: center; margin-top: 10px; font-size: 0.9rem; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .grid { grid-template-columns: 1fr; }
+            .btn-start { padding: 15px 25px; font-size: 1rem; min-width: 180px; }
+            .controls-bar { flex-direction: column; }
+            .btn { width: 100%; }
+            .back-btn { top: 10px; left: 10px; padding: 8px 16px; font-size: 0.8rem; }
+            .detection-item { flex-direction: column; }
+            .detection-screenshot { width: 100%; height: 200px; }
+            .start-section { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- Screenshot Modal -->
+<div id="screenshotModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <img id="modalImage" src="" alt="Screenshot">
+        <div id="modalInfo" class="modal-info"></div>
+    </div>
+</div>
+
+<div class="content">
+    <div class="hero">
+        <h1>AI Recognition System</h1>
+        <p>Real-time face recognition, multi-object detection with color filters, and video analysis. Upload videos to scan for objects with timestamps and screenshots.</p>
+    </div>
+
+    <div class="container">
+        <!-- HOME MENU -->
+        <div id="startSection" class="start-section">
+            <button onclick="showFaceDetection()" class="btn-start">
+                <span class="btn-icon">👤</span>
+                <span class="btn-label">Live Face Detection</span>
+                <span class="btn-desc">Register & recognize faces in real-time</span>
+            </button>
+            <button onclick="showObjectDetection()" class="btn-start" style="background: linear-gradient(135deg, #455a64, #607d8b);">
+                <span class="btn-icon">📦</span>
+                <span class="btn-label">Live Object Detection</span>
+                <span class="btn-desc">Detect multiple objects with color filters</span>
+            </button>
+            <button onclick="showVideoAnalysis()" class="btn-start" style="background: linear-gradient(135deg, #4a148c, #7b1fa2);">
+                <span class="btn-icon">🎬</span>
+                <span class="btn-label">Video Analysis</span>
+                <span class="btn-desc">Scan uploaded videos for objects</span>
+            </button>
+        </div>
+
+        <!-- LIVE FACE DETECTION SECTION -->
+        <div id="detectionSection" class="detection-section">
+            <button onclick="backToHomeFromDetection()" class="back-btn">← Back</button>
+            <div class="grid">
+                <div class="card">
+                    <h3>Register New Face</h3>
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" name="name" placeholder="Enter person's name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Photo</label>
+                            <input type="file" name="image" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register Face</button>
+                    </form>
+                    <div id="status" class="status"></div>
+                </div>
+                <div class="card">
+                    <h3>Registered Faces</h3>
+                    <ul id="faceList"></ul>
+                </div>
+            </div>
+            <div class="viewer-card">
+                <div id="alertPanel" class="alert-panel">
+                    <div class="alert-title"><span>⚠️</span><span id="alertTitle">Alert</span></div>
+                    <div id="alertList" class="alert-list"></div>
+                </div>
+                <div id="cctv-viewer">
+                    <img id="videoStream" alt="Stream">
+                    <span id="placeholderText">Click "Start Face Detection" to begin</span>
+                    <div id="loadingSpinner" class="loading-spinner"></div>
+                </div>
+                <div class="controls-bar">
+                    <button id="startBtn" onclick="startDetection('face')" class="btn btn-primary">▶ Start Face Detection</button>
+                    <button id="stopBtn" onclick="stopDetection()" class="btn btn-danger" style="display:none;">⏹ Stop Detection</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE OBJECT DETECTION SECTION -->
+        <div id="objectSection" class="detection-section">
+            <button onclick="backToHomeFromObject()" class="back-btn">← Back</button>
+            <div class="grid">
+                <div class="card">
+                    <h3>Add Target Object</h3>
+                    <div id="backendBadge" class="backend-badge limited">Loading...</div>
+                    <form id="objectForm">
+                        <div class="form-group">
+                            <label>Search Object</label>
+                            <div class="search-wrapper">
+                                <input type="text" id="objectInput" placeholder="Type to search... e.g., gun, knife, laptop" autocomplete="off" required>
+                                <div id="searchResults" class="search-results"></div>
+                            </div>
+                            <small id="searchHint" style="color:#8899aa;font-size:0.85rem;margin-top:5px;display:block;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Color Filter (Optional)</label>
+                            <select id="colorSelect">
+                                <option value="">Any Color</option>
+                                <option value="red">Red</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                                <option value="yellow">Yellow</option>
+                                <option value="black">Black</option>
+                                <option value="white">White</option>
+                                <option value="gray">Gray</option>
+                                <option value="brown">Brown</option>
+                                <option value="orange">Orange</option>
+                                <option value="pink">Pink</option>
+                                <option value="purple">Purple</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">+ Add Target</button>
+                    </form>
+                    <div id="objectStatus" class="status"></div>
+                    <div class="target-list">
+                        <div class="target-list-header">
+                            <h4>Active Targets</h4>
+                            <span id="targetCount" class="target-count">0/10</span>
+                        </div>
+                        <div id="targetList"><div class="no-targets">No targets added yet.<br>Add objects above to start detecting.</div></div>
+                        <button id="clearAllBtn" onclick="clearAllTargets()" class="btn btn-outline btn-small" style="width:100%;margin-top:10px;display:none;">Clear All Targets</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Object Catalog</h3>
+                    <div id="objectCatalog" style="max-height:600px;overflow-y:auto;padding-right:10px;">
+                        <div class="empty-state"><p>Loading...</p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="viewer-card">
+                <div id="alertPanel2" class="alert-panel">
+                    <div class="alert-title"><span>⚠️</span><span id="alertTitle2">Alert</span></div>
+                    <div id="alertList2" class="alert-list"></div>
+                </div>
+                <div id="cctv-viewer2">
+                    <img id="videoStream2" alt="Stream">
+                    <span id="placeholderText2">Add targets and click "Start Object Detection"</span>
+                    <div id="loadingSpinner2" class="loading-spinner"></div>
+                </div>
+                <div class="controls-bar">
+                    <button id="startBtn2" onclick="startDetection('object')" class="btn btn-primary">▶ Start Object Detection</button>
+                    <button id="stopBtn2" onclick="stopDetection()" class="btn btn-danger" style="display:none;">⏹ Stop Detection</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIDEO ANALYSIS SECTION -->
+        <div id="videoSection" class="detection-section">
+            <button onclick="backToHomeFromVideo()" class="back-btn">← Back</button>
+            <div class="grid">
+                <div class="card">
+                    <h3>Video Object Search</h3>
+                    <div id="videoBadge" class="backend-badge limited">Loading...</div>
+                    
+                    <div class="form-group" style="margin-top:10px;">
+                        <label>Detection Mode</label>
+                        <select id="videoDetectionMode">
+                            <option value="fast">⚡ Fast (YOLO Standard)</option>
+                            <option value="accurate">🎯 Accurate (YOLO World)</option>
+                        </select>
+                    </div>
+<div class="form-group">
+                        <label>1. Add Objects to Find</label>
+                        <div style="display:flex;gap:8px;">
+                            <div class="search-wrapper" style="flex:1;">
+                                <input type="text" id="videoObjectInput" placeholder="Type object name..." autocomplete="off">
+                                <div id="videoSearchResults" class="search-results"></div>
+                            <div id="videoCatalog" style="margin-top:12px;"></div>
+                            </div>
+                            <select id="videoColorSelect" style="width:120px;">
+                                <option value="">Any</option>
+                                <option value="red">Red</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                                <option value="yellow">Yellow</option>
+                                <option value="black">Black</option>
+                                <option value="white">White</option>
+                                <option value="gray">Gray</option>
+                                <option value="brown">Brown</option>
+                                <option value="orange">Orange</option>
+                                <option value="pink">Pink</option>
+                                <option value="purple">Purple</option>
+                            </select>
+                            <button onclick="addVideoTarget()" class="btn btn-primary btn-small">+</button>
+                        </div>
+                    </div>
+                    <div id="videoTargetChips" style="margin-bottom:15px;min-height:30px;"></div>
+                    <div class="form-group">
+                        <label>2. Upload Video</label>
+                        <div id="videoDropZone" class="video-upload-area">
+                            <div class="video-upload-icon">🎬</div>
+                            <p style="color:#b8c5d6;margin-bottom:8px;">Drop video here or click to browse</p>
+                            <p style="color:#667;font-size:0.8rem;">MP4, AVI, MOV, MKV, WebM • Max 500MB</p>
+                            <input type="file" id="videoFileInput" accept=".mp4,.avi,.mov,.mkv,.wmv,.flv,.webm" style="display:none;">
+                        </div>
+                        <div id="selectedVideoName" style="color:#3282b8;font-size:0.9rem;margin-top:8px;display:none;"></div>
+                    </div>
+                    <button id="analyzeBtn" onclick="startVideoAnalysis()" class="btn btn-primary" style="width:100%;" disabled>🔍 Analyze Video</button>
+                    <button id="cancelAnalysisBtn" onclick="cancelVideoAnalysis()" class="btn btn-danger" style="width:100%;margin-top:8px;display:none;">✕ Cancel Analysis</button>
+                    <div id="videoStatus" class="status"></div>
+                    <div id="videoProgress" style="display:none;margin-top:15px;">
+                        <div class="progress-bar-container"><div id="progressBar" class="progress-bar"></div></div>
+                        <div id="progressText" class="progress-text">0%</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Analysis Results</h3>
+                    <div id="videoResults">
+                        <div class="empty-state"><p>Upload a video and analyze to see results</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== 3D BG ====================
+const canvas=document.getElementById('bg-canvas');const scene=new THREE.Scene();const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:false});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));cam.position.z=30;const geo=new THREE.BufferGeometry();const pc=800;const pos=new Float32Array(pc*3);const col=new Float32Array(pc*3);for(let i=0;i<pc*3;i+=3){pos[i]=(Math.random()-0.5)*100;pos[i+1]=(Math.random()-0.5)*100;pos[i+2]=(Math.random()-0.5)*100;col[i]=0.2+Math.random()*0.3;col[i+1]=0.4+Math.random()*0.4;col[i+2]=0.6+Math.random()*0.4;}geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));const mat=new THREE.PointsMaterial({size:0.3,vertexColors:true,transparent:true,opacity:0.8});const pts=new THREE.Points(geo,mat);scene.add(pts);let mX=0,mY=0;document.addEventListener('mousemove',e=>{mX=(e.clientX/innerWidth)*2-1;mY=-(e.clientY/innerHeight)*2+1;});function animate(){requestAnimationFrame(animate);pts.rotation.x+=0.0005;pts.rotation.y+=0.0008;cam.position.x+=(mX*5-cam.position.x)*0.05;cam.position.y+=(mY*5-cam.position.y)*0.05;cam.lookAt(scene.position);renderer.render(scene,cam);}animate();window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+// ==================== STATE ====================
+let readyCheckInterval=null,alertCheckInterval=null,videoJobInterval=null;
+let currentMode='face';
+let availableObjects=[],objectCategories={},isOpenVocab=false,maxTargets=10;
+let searchDebounce=null,activeTargets=[];
+let videoTargets=[],currentJobId=null;
+
+// ==================== NAVIGATION ====================
+function showFaceDetection() {
+    document.getElementById('startSection').style.display='none';
+    document.getElementById('detectionSection').classList.add('active');
+    document.getElementById('objectSection').classList.remove('active');
+    document.getElementById('videoSection').classList.remove('active');
+    currentMode='face';
+    loadFaces();
+}
+
+function showObjectDetection() {
+    document.getElementById('startSection').style.display='none';
+    document.getElementById('detectionSection').classList.remove('active');
+    document.getElementById('objectSection').classList.add('active');
+    document.getElementById('videoSection').classList.remove('active');
+    currentMode='object';
+    loadAvailableObjects();
+    loadTargets();
+}
+
+function showVideoAnalysis() {
+    document.getElementById('startSection').style.display='none';
+    document.getElementById('detectionSection').classList.remove('active');
+    document.getElementById('objectSection').classList.remove('active');
+    document.getElementById('videoSection').classList.add('active');
+    loadAvailableObjects();
+    updateVideoBadge();
+}
+
+function backToHome() {
+    document.getElementById('startSection').style.display='flex';
+    document.getElementById('detectionSection').classList.remove('active');
+    document.getElementById('objectSection').classList.remove('active');
+    document.getElementById('videoSection').classList.remove('active');
+}
+
+function clearAllIntervals() {
+    if(readyCheckInterval){clearInterval(readyCheckInterval);readyCheckInterval=null;}
+    if(alertCheckInterval){clearInterval(alertCheckInterval);alertCheckInterval=null;}
+    if(videoJobInterval){clearInterval(videoJobInterval);videoJobInterval=null;}
+}
+
+function backToHomeFromDetection() {
+    const s=document.getElementById('stopBtn');
+    if(s.style.display!=='none') fetch("/stop").catch(()=>{});
+    clearAllIntervals();
+    document.getElementById('alertPanel').classList.remove('show');
+    document.getElementById('videoStream').src='';
+    document.getElementById('videoStream').style.display='none';
+    document.getElementById('placeholderText').style.display='block';
+    document.getElementById('placeholderText').innerText='Click "Start Face Detection" to begin';
+    document.getElementById('startBtn').style.display='inline-block';
+    document.getElementById('stopBtn').style.display='none';
+    document.getElementById('startBtn').disabled=false;
+    backToHome();
+}
+
+function backToHomeFromObject() {
+    const s=document.getElementById('stopBtn2');
+    if(s.style.display!=='none') fetch("/stop").catch(()=>{});
+    clearAllIntervals();
+    document.getElementById('alertPanel2').classList.remove('show');
+    document.getElementById('videoStream2').src='';
+    document.getElementById('videoStream2').style.display='none';
+    document.getElementById('placeholderText2').style.display='block';
+    document.getElementById('placeholderText2').innerText='Add targets and click "Start Object Detection"';
+    document.getElementById('startBtn2').style.display='inline-block';
+    document.getElementById('stopBtn2').style.display='none';
+    document.getElementById('startBtn2').disabled=false;
+    backToHome();
+}
+
+function backToHomeFromVideo() {
+    clearAllIntervals();
+    backToHome();
+}
+
+// ==================== LOAD OBJECTS ====================
+function loadAvailableObjects() {
+    fetch("/get_available_objects").then(r=>r.json()).then(data=>{
+        availableObjects=data.objects||[];
+        objectCategories=data.categories||{};
+        isOpenVocab=data.open_vocabulary||false;
+        maxTargets=data.max_targets||10;
+        const b=document.getElementById('backendBadge');
+        if(b){
+            if(isOpenVocab){b.className='backend-badge open-vocab';b.textContent=`✓ ${data.backend.replace(/_/g,' ').toUpperCase()} — Open Vocabulary`;}
+            else{b.className='backend-badge limited';b.textContent=`⚠ ${(data.backend||'').replace(/_/g,' ').toUpperCase()} — ${availableObjects.length} objects`;}
+        }
+        const h=document.getElementById('searchHint');
+        if(h) h.textContent=isOpenVocab?'Type ANY object name — AI can detect anything':'Search from available objects';
+        renderObjectCatalog();
+    }).catch(()=>{});
+}
+
+function updateVideoBadge() {
+    fetch("/get_available_objects").then(r=>r.json()).then(data=>{
+        const b=document.getElementById('videoBadge');
+        if(data.open_vocabulary){b.className='backend-badge open-vocab';b.textContent=`✓ ${data.backend.replace(/_/g,' ').toUpperCase()} — Detect Anything`;}
+        else{b.className='backend-badge limited';b.textContent=`⚠ ${(data.backend||'').replace(/_/g,' ').toUpperCase()} — Limited`;}
+    }).catch(()=>{});
+}
+
+function renderObjectCatalog() {
+    const c=document.getElementById('objectCatalog');
+    if(!Object.keys(objectCategories).length){c.innerHTML='<div class="empty-state">No objects</div>';return;}
+    let h='';
+    for(const[cat,items]of Object.entries(objectCategories)){
+        h+=`<div class="category-section"><div class="category-title">${cat} (${items.length})</div><div class="object-tags">`;
+        items.forEach(i=>{h+=`<span class="object-tag" onclick="selectObject('${i.replace(/'/g,"\\'")}')">${i}</span>`;});
+        h+='</div></div>';
+    }
+    c.innerHTML=h;
+}
+
+function selectObject(n) {
+    const el=document.getElementById('objectInput');
+    if(el) el.value=n;
+    document.getElementById('searchResults').classList.remove('show');
+}
+
+function selectVideoObject(n) {
+    document.getElementById('videoObjectInput').value=n;
+    document.getElementById('videoSearchResults').classList.remove('show');
+}
+
+// ==================== TARGET MANAGEMENT (LIVE) ====================
+function loadTargets() {
+    fetch("/get_targets").then(r=>r.json()).then(d=>{activeTargets=d.targets||[];renderTargetList();}).catch(()=>{});
+}
+
+function renderTargetList() {
+    const c=document.getElementById('targetList'),cnt=document.getElementById('targetCount'),cl=document.getElementById('clearAllBtn');
+    cnt.textContent=`${activeTargets.length}/${maxTargets}`;
+    if(!activeTargets.length){c.innerHTML='<div class="no-targets">No targets added yet.<br>Add objects above to start detecting.</div>';cl.style.display='none';return;}
+    cl.style.display='block';
+    let h='';
+    activeTargets.forEach(t=>{
+        const[b,g,r]=t.draw_color;
+        h+=`<div class="target-item"><div class="target-color-dot" style="background:rgb(${r},${g},${b})"></div><div class="target-info"><div class="target-name">${t.object.charAt(0).toUpperCase()+t.object.slice(1)}</div><div class="target-filter">${t.color!=='any'?'Color: '+t.color:'Any color'}</div></div><button class="target-remove" onclick="removeTarget('${t.id}')">×</button></div>`;
+    });
+    c.innerHTML=h;
+}
+
+function removeTarget(id) {
+    fetch("/remove_target",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}).then(r=>r.json()).then(d=>{if(d.success){activeTargets=activeTargets.filter(t=>t.id!==id);renderTargetList();}}).catch(()=>{});
+}
+
+function clearAllTargets() {
+    if(!confirm('Remove all targets?')) return;
+    fetch("/clear_targets",{method:"POST"}).then(r=>r.json()).then(d=>{if(d.success){activeTargets=[];renderTargetList();}}).catch(()=>{});
+}
+
+// ==================== SEARCH ====================
+function setupSearch(inputId, resultsId, selectFn, catalogGetter) {
+    const inp=document.getElementById(inputId),res=document.getElementById(resultsId);
+    inp.addEventListener('input',()=>{
+        clearTimeout(searchDebounce);
+        const q=inp.value.trim();
+        if(q.length<1){res.classList.remove('show');return;}
+        searchDebounce=setTimeout(()=>{
+            const cat = (typeof catalogGetter==='function') ? catalogGetter() : {objects: availableObjects, openVocab: isOpenVocab};
+            const objs = cat.objects || [];
+            const openV = !!cat.openVocab;
+            const lr=objs.filter(o=>o.toLowerCase().includes(q.toLowerCase())).slice(0,20);
+            let h='';
+            if(openV&&!lr.some(r=>r.toLowerCase()===q.toLowerCase()))
+                h+=`<div class="search-item" onclick="${selectFn}('${q.replace(/'/g,"\\'")}')"><strong>"${q}"</strong><span class="custom-tag">CUSTOM</span></div>`;
+            lr.forEach(i=>{
+                const idx=i.toLowerCase().indexOf(q.toLowerCase());
+                let d=idx>=0?i.substring(0,idx)+'<span class="match">'+i.substring(idx,idx+q.length)+'</span>'+i.substring(idx+q.length):i;
+                h+=`<div class="search-item" onclick="${selectFn}('${i.replace(/'/g,"\\'")}')">${d}</div>`;
+            });
+            if(!h) h=openV?`<div class="search-item" onclick="${selectFn}('${q.replace(/'/g,"\\'")}')"><strong>"${q}"</strong><span class="custom-tag">CUSTOM</span></div>`:'<div class="search-item" style="cursor:default;color:#666;">No matches</div>';
+            res.innerHTML=h;res.classList.add('show');
+        },150);
+    });
+    document.addEventListener('click',e=>{if(!e.target.closest('.search-wrapper'))res.classList.remove('show');});
+    inp.addEventListener('keydown',e=>{if(e.key==='Escape')res.classList.remove('show');});
+}
+
+
+function loadVideoObjectCatalog() {
+    const modeSel = document.getElementById('videoDetectionMode');
+    const mode = modeSel ? (modeSel.value || 'fast') : 'fast';
+
+    fetch(`/get_object_catalog?mode=${encodeURIComponent(mode)}`)
+        .then(r=>r.json())
+        .then(data=>{
+            videoAvailableObjects = data.objects || [];
+            videoObjectCategories = data.categories || {};
+            videoOpenVocab = !!data.open_vocabulary;
+
+            // Update badge to reflect selected mode (not necessarily current live backend)
+            const b = document.getElementById('videoBadge');
+            if (b) {
+                if (videoOpenVocab) {
+                    b.className = 'backend-badge open-vocab';
+                    b.textContent = `✓ ${String(data.backend||'').replace(/_/g,' ').toUpperCase()} — Open Vocabulary`;
+                } else {
+                    b.className = 'backend-badge limited';
+                    b.textContent = `⚠ ${String(data.backend||'').replace(/_/g,' ').toUpperCase()} — ${videoAvailableObjects.length} objects`;
+                }
+            }
+
+            renderVideoObjectCatalog();
+        })
+        .catch(()=>{});
+}
+
+function renderVideoObjectCatalog() {
+    const wrap = document.getElementById('videoCatalog');
+    if (!wrap) return;
+    const cats = videoObjectCategories || {};
+    const keys = Object.keys(cats);
+    if (!keys.length) {
+        wrap.innerHTML = '<div class="empty-state">No catalog available</div>';
+        return;
+    }
+    let html = '';
+    keys.forEach(k=>{
+        const items = cats[k] || [];
+        html += `<div class="category-section"><div class="category-title">${k}</div><div class="object-tags">`;
+        items.slice(0, 80).forEach(o=>{
+            html += `<span class="object-tag" onclick="selectVideoObject('${String(o).replace(/'/g,"\'")}')">${o}</span>`;
+        });
+        if (items.length > 80) html += `<span class="object-tag" style="cursor:default;opacity:0.7;">+${items.length-80} more</span>`;
+        html += `</div></div>`;
+    });
+    wrap.innerHTML = html;
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    setupSearch('objectInput','searchResults','selectObject', ()=>({objects: availableObjects, openVocab: isOpenVocab}));
+    setupSearch('videoObjectInput','videoSearchResults','selectVideoObject', ()=>({objects: videoAvailableObjects, openVocab: videoOpenVocab}));
+    setupVideoDropZone();
+    const vdm=document.getElementById('videoDetectionMode');
+    if(vdm){vdm.addEventListener('change', loadVideoObjectCatalog);}
+    loadVideoObjectCatalog();
+});
+
+// ==================== LIVE OBJECT FORM ====================
+document.getElementById("objectForm").onsubmit=function(e){
+    e.preventDefault();
+    const s=document.getElementById("objectStatus"),inp=document.getElementById('objectInput'),col=document.getElementById('colorSelect');
+    const obj=inp.value.toLowerCase().trim(),clr=col.value;
+    document.getElementById('searchResults').classList.remove('show');
+    if(!obj){s.className="status error show";s.innerText="✗ Enter an object name";setTimeout(()=>s.classList.remove('show'),3000);return;}
+    if(!isOpenVocab&&!availableObjects.includes(obj)){s.className="status error show";s.innerText="✗ Object not available with current model";setTimeout(()=>s.classList.remove('show'),5000);return;}
+    s.className="status info show";s.innerText="Adding target...";
+    fetch("/add_target",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({object:obj,color:clr})}).then(r=>r.json()).then(d=>{
+        if(d.success){s.className="status success show";s.innerText=`✓ Added "${obj}" (${d.total_targets} active)`;setTimeout(()=>s.classList.remove('show'),3000);activeTargets.push(d.target);renderTargetList();inp.value='';col.value='';}
+        else{s.className="status error show";s.innerText="✗ "+(d.message||"Failed");setTimeout(()=>s.classList.remove('show'),5000);}
+    }).catch(()=>{s.className="status error show";s.innerText="✗ Error adding target";setTimeout(()=>s.classList.remove('show'),5000);});
+};
+
+// ==================== VIDEO TARGETS ====================
+function addVideoTarget() {
+    const inp=document.getElementById('videoObjectInput'),col=document.getElementById('videoColorSelect');
+    const obj=inp.value.toLowerCase().trim(),clr=col.value;
+    if(!obj) return;
+    if(videoTargets.some(t=>t.object===obj&&t.color===clr)){showVideoStatus('error','Already added');return;}
+    if(videoTargets.length>=10){showVideoStatus('error','Maximum 10 targets');return;}
+    videoTargets.push({object:obj,color:clr});
+    renderVideoTargetChips();
+    inp.value='';col.value='';
+    updateAnalyzeBtn();
+}
+
+function removeVideoTarget(idx) {
+    videoTargets.splice(idx,1);
+    renderVideoTargetChips();
+    updateAnalyzeBtn();
+}
+
+function renderVideoTargetChips() {
+    const c=document.getElementById('videoTargetChips');
+    if(!videoTargets.length){c.innerHTML='<span style="color:#667;font-size:0.85rem;">No objects selected yet</span>';return;}
+    let h='';
+    videoTargets.forEach((t,i)=>{
+        const label=t.color?`${t.color} ${t.object}`:t.object;
+        h+=`<span class="video-target-chip">${label}<span class="chip-remove" onclick="removeVideoTarget(${i})">×</span></span>`;
+    });
+    c.innerHTML=h;
+}
+
+function updateAnalyzeBtn() {
+    const btn=document.getElementById('analyzeBtn'),file=document.getElementById('videoFileInput');
+    btn.disabled=!(videoTargets.length>0&&file.files.length>0);
+}
+
+// ==================== VIDEO DROP ZONE ====================
+function setupVideoDropZone() {
+    const zone=document.getElementById('videoDropZone'),input=document.getElementById('videoFileInput');
+    zone.onclick=()=>input.click();
+    input.onchange=()=>{
+        if(input.files.length){
+            document.getElementById('selectedVideoName').style.display='block';
+            document.getElementById('selectedVideoName').textContent=`📁 ${input.files[0].name} (${(input.files[0].size/1024/1024).toFixed(1)}MB)`;
+            updateAnalyzeBtn();
+        }
+    };
+    zone.ondragover=e=>{e.preventDefault();zone.classList.add('dragover');};
+    zone.ondragleave=()=>zone.classList.remove('dragover');
+    zone.ondrop=e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;input.onchange();}};
+}
+
+// ==================== VIDEO ANALYSIS ====================
+function showVideoStatus(type,msg) {
+    const s=document.getElementById('videoStatus');
+    s.className=`status ${type} show`;
+    s.innerText=type==='error'?'✗ '+msg:type==='success'?'✓ '+msg:msg;
+    if(type!=='info') setTimeout(()=>s.classList.remove('show'),5000);
+}
+
+function startVideoAnalysis() {
+    if (!videoTargets.length) { showVideoStatus('error', 'Add at least one target object'); return; }
+    const file = document.getElementById('videoFileInput').files[0];
+    if (!file) { showVideoStatus('error', 'Please select a video file'); return; }
+
+    const fd = new FormData();
+    fd.append('video', file);
+    fd.append('mode', document.getElementById('videoDetectionMode').value || 'fast');
+    const targetsStr = videoTargets.map(t => t.color ? `${t.object}:${t.color}` : t.object).join(',');
+    fd.append('targets', targetsStr);
+
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('analyzeBtn').textContent = '⏳ Uploading...';
+    document.getElementById('cancelAnalysisBtn').style.display = 'block';
+    document.getElementById('videoProgress').style.display = 'block';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressText').textContent = 'Uploading video...';
+
+    const uploadStart = Date.now();
+
+    fetch("/upload_video", { method: "POST", body: fd }).then(r => r.json()).then(data => {
+        if (!data.success) { showVideoStatus('error', data.message); resetVideoUI(); return; }
+
+        currentJobId = data.job_id;
+        document.getElementById('analyzeBtn').textContent = '⏳ Analyzing...';
+        showVideoStatus('info', 'Analysis started — scanning video for objects...');
+
+        const analysisStart = Date.now();
+
+        videoJobInterval = setInterval(() => {
+            fetch(`/video_job_status/${currentJobId}`).then(r => r.json()).then(job => {
+                const elapsed = ((Date.now() - analysisStart) / 1000).toFixed(0);
+                const fpsRate = job.processed_frames > 0 && elapsed > 0
+                    ? (job.processed_frames / elapsed).toFixed(0)
+                    : '—';
+
+                document.getElementById('progressBar').style.width = job.progress + '%';
+                document.getElementById('progressText').textContent =
+                    `${job.progress}% • Frame ${job.processed_frames}/${job.total_frames} • ${job.total_detections} found • ${elapsed}s elapsed • ~${fpsRate} fps`;
+
+                if (job.status === 'completed') {
+                    clearInterval(videoJobInterval); videoJobInterval = null;
+                    renderVideoResults(job); resetVideoUI();
+                    document.getElementById('videoProgress').style.display = 'none';
+                    if (job.found) showVideoStatus('success', `Found ${job.total_detections} detection${job.total_detections > 1 ? 's' : ''} in ${job.elapsed_seconds.toFixed(1)}s!`);
+                    else showVideoStatus('error', 'No objects found in this video');
+                } else if (job.status === 'error') {
+                    clearInterval(videoJobInterval); videoJobInterval = null;
+                    showVideoStatus('error', job.error || 'Analysis failed'); resetVideoUI();
+                    document.getElementById('videoProgress').style.display = 'none';
+                } else if (job.status === 'cancelled') {
+                    clearInterval(videoJobInterval); videoJobInterval = null;
+                    showVideoStatus('info', 'Analysis cancelled'); resetVideoUI();
+                    document.getElementById('videoProgress').style.display = 'none';
+                }
+            }).catch(() => {});
+        }, 500);  // Poll every 500ms instead of 1000ms for smoother progress
+    }).catch(() => { showVideoStatus('error', 'Upload failed'); resetVideoUI(); });
+}
+function cancelVideoAnalysis() {
+    if(currentJobId) fetch(`/cancel_video_job/${currentJobId}`,{method:"POST"}).catch(()=>{});
+    resetVideoUI();
+}
+
+function resetVideoUI() {
+    document.getElementById('analyzeBtn').disabled=false;
+    document.getElementById('analyzeBtn').textContent='🔍 Analyze Video';
+    document.getElementById('cancelAnalysisBtn').style.display='none';
+    updateAnalyzeBtn();
+}
+
+function renderVideoResults(job) {
+    const c = document.getElementById('videoResults');
+
+    const speedInfo = job.elapsed_seconds > 0
+        ? `Processed in ${job.elapsed_seconds.toFixed(1)}s (${(job.duration / job.elapsed_seconds).toFixed(1)}x speed)`
+        : '';
+
+    if (!job.found) {
+        c.innerHTML = `<div class="result-card">
+            <div class="result-not-found">❌ No Objects Found</div>
+            <p style="color:#8899aa;margin-top:10px;">None of the target objects were detected in "${job.filename}"</p>
+            <p style="color:#667;font-size:0.85rem;margin-top:5px;">
+                Video duration: ${job.duration_formatted} • ${job.total_frames} frames
+                ${speedInfo ? '<br>' + speedInfo : ''}
+            </p>
+        </div>`;
+        return;
+    }
+
+    let h = `<div class="result-card">
+        <div class="result-header">
+            <div class="result-found">✅ ${job.total_detections} Detection${job.total_detections > 1 ? 's' : ''} Found</div>
+        </div>
+        <p style="color:#8899aa;margin-bottom:5px;">Video: ${job.filename}</p>
+        <p style="color:#667;font-size:0.85rem;margin-bottom:15px;">
+            Duration: ${job.duration_formatted} • ${job.total_frames} frames
+            ${speedInfo ? ' • ' + speedInfo : ''}
+        </p>`;
+
+    job.results.forEach((r, i) => {
+        const colorInfo = r.color_detected ? ` • Color: ${r.color_detected}` : '';
+        h += `<div class="detection-item">
+            <img class="detection-screenshot"
+                 src="/video_screenshot/${r.screenshot}"
+                 alt="Detection ${i + 1}"
+                 onclick="openModal('/video_screenshot/${r.screenshot}','${r.object} at ${r.timestamp}')">
+            <div class="detection-details">
+                <div class="detection-timestamp">⏱ ${r.timestamp}</div>
+                <div class="detection-object">${r.object.charAt(0).toUpperCase() + r.object.slice(1)}</div>
+                <div class="detection-meta">Confidence: ${(r.confidence * 100).toFixed(0)}%${colorInfo}</div>
+                <div class="detection-meta">Frame #${r.frame_number}</div>
+            </div>
+        </div>`;
+    });
+
+    h += '</div>';
+    c.innerHTML = h;
+}
+
+// ==================== MODAL ====================
+function openModal(src,info) {
+    document.getElementById('modalImage').src=src;
+    document.getElementById('modalInfo').textContent=info;
+    document.getElementById('screenshotModal').classList.add('show');
+}
+
+function closeModal(e) {
+    if(!e||e.target===document.getElementById('screenshotModal')||e.target.classList.contains('modal-close'))
+        document.getElementById('screenshotModal').classList.remove('show');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ==================== ALERTS ====================
+function checkAlerts() {
+    fetch("/get_alerts").then(r=>r.json()).then(d=>{
+        updateAlertPanel('alertPanel','alertTitle','alertList',d.alerts);
+        updateAlertPanel('alertPanel2','alertTitle2','alertList2',d.alerts);
+    }).catch(()=>{});
+}
+
+function updateAlertPanel(p,t,l,alerts) {
+    const panel=document.getElementById(p),title=document.getElementById(t),list=document.getElementById(l);
+    if(alerts&&alerts.length){
+        panel.classList.add('show');panel.classList.remove('safe');
+        title.innerHTML='⚠️ Tampering Detected';
+        list.innerHTML=alerts.map(a=>`<span class="alert-badge">${a}</span>`).join('');
+    } else {
+        panel.classList.add('show','safe');
+        title.innerHTML='✓ All Systems Normal';
+        list.innerHTML='<span class="alert-badge safe-badge">NO THREATS</span>';
+    }
+}
+
+// ==================== DETECTION START/STOP ====================
+function startDetection(mode) {
+    currentMode=mode;
+    let sBtn,xBtn,spin,ph,vid;
+    if(mode==='face'){
+        sBtn=document.getElementById('startBtn');xBtn=document.getElementById('stopBtn');
+        spin=document.getElementById('loadingSpinner');ph=document.getElementById('placeholderText');
+        vid=document.getElementById('videoStream');
+    } else {
+        if(!activeTargets.length){
+            const s=document.getElementById("objectStatus");
+            s.className="status error show";s.innerText="✗ Add at least one target first";
+            setTimeout(()=>s.classList.remove('show'),3000);return;
+        }
+        sBtn=document.getElementById('startBtn2');xBtn=document.getElementById('stopBtn2');
+        spin=document.getElementById('loadingSpinner2');ph=document.getElementById('placeholderText2');
+        vid=document.getElementById('videoStream2');
+    }
+    sBtn.disabled=true;spin.classList.add('show');ph.innerText='Initializing camera...';
+    fetch("/start?mode="+mode).then(r=>r.json()).then(d=>{
+        if(d.status==='error'){sBtn.disabled=false;spin.classList.remove('show');ph.innerText=d.message||'Error starting camera';return;}
+        vid.src='/video_feed?t='+Date.now();
+        let a=0;
+        readyCheckInterval=setInterval(()=>{
+            fetch("/check_ready").then(r=>r.json()).then(d=>{
+                a++;
+                if(d.ready||a>50){
+                    clearInterval(readyCheckInterval);readyCheckInterval=null;
+                    vid.style.display='block';ph.style.display='none';spin.classList.remove('show');
+                    sBtn.style.display='none';sBtn.disabled=false;xBtn.style.display='inline-block';
+                    alertCheckInterval=setInterval(checkAlerts,500);
+                }
+            }).catch(()=>a++);
+        },100);
+    }).catch(()=>{sBtn.disabled=false;spin.classList.remove('show');ph.innerText='Error starting camera. Try again.';});
+}
+
+function stopDetection() {
+    let xBtn,vid,ph,sBtn;
+    if(currentMode==='face'){
+        xBtn=document.getElementById('stopBtn');vid=document.getElementById('videoStream');
+        ph=document.getElementById('placeholderText');sBtn=document.getElementById('startBtn');
+        document.getElementById('alertPanel').classList.remove('show');
+    } else {
+        xBtn=document.getElementById('stopBtn2');vid=document.getElementById('videoStream2');
+        ph=document.getElementById('placeholderText2');sBtn=document.getElementById('startBtn2');
+        document.getElementById('alertPanel2').classList.remove('show');
+    }
+    xBtn.disabled=true;clearAllIntervals();
+    fetch("/stop").then(r=>r.json()).then(()=>{
+        vid.src='';vid.style.display='none';ph.style.display='block';
+        ph.innerText=currentMode==='face'?'Click "Start Face Detection" to begin':'Add targets and click "Start Object Detection"';
+        sBtn.style.display='inline-block';xBtn.style.display='none';xBtn.disabled=false;
+    }).catch(()=>xBtn.disabled=false);
+}
+
+// ==================== FACE MANAGEMENT ====================
+function loadFaces() {
+    fetch("/faces").then(r=>r.json()).then(d=>{
+        const l=document.getElementById("faceList");
+        if(!d.length){l.innerHTML='<div class="empty-state"><p>No faces registered yet</p></div>';return;}
+        l.innerHTML="";
+        d.forEach(f=>{
+            const li=document.createElement("li");
+            li.innerHTML=`<span>${f.name}</span><button onclick="deleteFace('${f.id}')" class="btn btn-danger btn-small">Delete</button>`;
+            l.appendChild(li);
+        });
+    }).catch(()=>{});
+}
+
+function deleteFace(id) {
+    if(confirm('Delete this face?'))
+        fetch("/delete_face",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}).then(loadFaces);
+}
+
+document.getElementById("uploadForm").onsubmit=function(e){
+    e.preventDefault();
+    const fd=new FormData(this),s=document.getElementById("status");
+    s.className="status info show";s.innerText="Registering face...";
+    fetch("/upload",{method:"POST",body:fd}).then(r=>r.json()).then(d=>{
+        if(d.success){s.className="status success show";s.innerText="✓ Face registered successfully!";loadFaces();this.reset();setTimeout(()=>s.classList.remove('show'),3000);}
+        else{s.className="status error show";s.innerText="✗ "+d.message;}
+    }).catch(()=>{s.className="status error show";s.innerText="✗ Error registering face";});
+};
+
+// Init
+renderVideoTargetChips();
+</script>
+</body>
+</html>
