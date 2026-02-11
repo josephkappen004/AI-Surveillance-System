@@ -70,9 +70,9 @@ An end-to-end AI-powered surveillance platform featuring real-time object detect
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/AI-Surveillance-System.git
-cd AI-Surveillance-System
+cd AI-Surveillance-System 
 
-2️⃣ Create Virtual Environment
+### 2️⃣ Create Virtual Environment
 python -m venv venv
 venv\Scripts\activate
 
