@@ -62,28 +62,7 @@ An end-to-end AI-powered surveillance platform featuring real-time object detect
 📈 Optimized processing time from:
 **~150 seconds → ~10 seconds** for a 17-second video.
 
----
 
-## 📂 Project Structure
-
-AI-Surveillance-System/
-│
-├── app.py
-├── object_detection.py
-├── face_detection.py
-├── video_analysis.py
-├── tampering_detection.py
-├── face_db.py
-├── templates/
-│ └── index.html
-├── static/
-├── uploads/
-├── video_uploads/
-├── video_results/
-└── requirements.txt
-
-
----
 
 ## 🛠 Installation
 
