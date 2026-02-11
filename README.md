@@ -1,108 +1,142 @@
-# 🔍 AI Surveillance System
+🔍 AI Surveillance System
 
-An end-to-end AI-powered surveillance platform featuring real-time object detection, face recognition, and high-performance video analysis with dynamic Fast/Accurate inference modes.
+An end-to-end AI-powered surveillance platform supporting real-time object detection, face recognition, and optimized video analysis with dynamic Fast/Accurate inference modes.
 
----
+🚀 Features
+🎥 Live Object Detection
 
-## 🚀 Features
+Open-vocabulary detection using YOLO-World
 
-### 🎥 Live Object Detection
-- Open-vocabulary detection using **YOLO-World**
-- Detect custom objects dynamically
-- Real-time camera stream processing
-- GPU (CUDA) acceleration support
+Real-time camera stream processing
 
-### ⚡ Fast vs 🎯 Accurate Video Analysis
-- **Fast Mode** → YOLOv8 Standard (COCO-based, high speed)
-- **Accurate Mode** → YOLO-World (Open vocabulary)
-- Frame sampling & resizing optimizations
-- Timestamped detection results
-- Screenshot capture with bounding boxes
-- Progress tracking & background processing
+GPU (CUDA) acceleration support
 
-### 👤 Face Recognition
-- Powered by **InsightFace**
-- Embedding extraction + cosine similarity matching
-- Persistent face storage using SQLite
-- Mask-resistant recognition capability
+Dynamic object search capability
 
-### 🎨 Color-Based Object Filtering
-- HSV-based color analysis
-- Detect specific colored objects (e.g., red car, blue bag)
+⚡ Fast vs 🎯 Accurate Video Analysis
 
-### 🛡 Camera Tampering Detection
-- Dark frame detection
-- Blur detection
-- Freeze detection
-- Movement anomaly detection
+Fast Mode → YOLOv8 Standard (COCO-based, high speed)
 
----
+Accurate Mode → YOLO-World (Open vocabulary)
 
-## 🏗 System Architecture
+Frame skipping and resolution scaling
 
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Backend**: Flask (Python)
-- **Computer Vision**: OpenCV
-- **Object Detection**: YOLOv8 (Standard & World)
-- **Face Recognition**: InsightFace
-- **Database**: SQLite
-- **GPU Support**: CUDA (if available)
-- **Threading**: Background video processing
+Timestamped detections
 
----
+Screenshot capture with bounding boxes
 
-## ⚙️ Performance Optimization
+Background processing with progress tracking
 
-- Dynamic backend switching (Fast / Accurate)
-- Frame skipping strategy
-- Resolution scaling
-- Deduplication of repeated detections
-- Multithreaded background video analysis
+👤 Face Recognition
 
-📈 Optimized processing time from:
-**~150 seconds → ~10 seconds** for a 17-second video.
+Powered by InsightFace
 
+Embedding extraction and cosine similarity matching
 
+SQLite-based face storage
 
-## 🛠 Installation
+🎨 Color-Based Filtering
 
-### 1️⃣ Clone Repository
+HSV-based color detection
 
-```bash
+Detect specific colored objects
+
+🛡 Tampering Detection
+
+Dark frame detection
+
+Blur detection
+
+Freeze detection
+
+Movement anomaly detection
+
+🏗 Tech Stack
+Backend
+
+Python
+
+Flask
+
+OpenCV
+
+SQLite
+
+Multithreading
+
+AI / Machine Learning
+
+YOLOv8 (YOLO-Standard & YOLO-World)
+
+InsightFace
+
+Cosine Similarity Matching
+
+CUDA (GPU Acceleration)
+
+Frontend
+
+HTML5
+
+CSS3
+
+JavaScript (Fetch API)
+
+⚙️ Performance Optimization
+
+Dynamic backend switching (Fast / Accurate)
+
+Frame sampling strategy
+
+Resolution scaling
+
+Detection deduplication
+
+Multithreaded video processing
+
+📈 Reduced video processing time from ~150 seconds to ~10 seconds for a 17-second video.
+
+🛠 Installation
+1️⃣ Clone Repository
 git clone https://github.com/YOUR_USERNAME/AI-Surveillance-System.git
-cd AI-Surveillance-System 
+cd AI-Surveillance-System
 
-### 2️⃣ Create Virtual Environment
+2️⃣ Create Virtual Environment
 python -m venv venv
-venv\Scripts\activate
+
+Activate Environment (macOS / Linux)
+source venv/bin/activate
+
+Activate Environment (Windows - Git Bash)
+source venv/Scripts/activate
 
 3️⃣ Install Dependencies
 pip install -r requirements.txt
 
 4️⃣ Run Application
 python app.py
-4️⃣ Run Application
-python app.py
 
 
-Open in browser:
+Open your browser:
 
 http://127.0.0.1:5000
 
 🧠 Detection Modes
-Mode	Model	Speed	Object Coverage
+Mode	Model	Speed	Coverage
 ⚡ Fast	YOLOv8 Standard	High	COCO Classes
-🎯 Accurate	YOLO-World	Medium	Open Vocabulary
+🎯 Accurate	YOLO-World	Moderate	Open Vocabulary
 💡 Use Cases
 
 Smart CCTV Monitoring
 
-Missing Person Alerts
-
 Security Surveillance
 
-Object Tracking
+Missing Person Detection
 
 Retail Analytics
 
-College Project / Research Prototype
+Academic Research
+
+👨‍💻 Author
+
+Joseph Kappen
