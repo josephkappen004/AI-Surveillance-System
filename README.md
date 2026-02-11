@@ -94,5 +94,6 @@ pip install -r requirements.txt
 ## 4️⃣ Run Application
 
 ```bash
-4️⃣ Run Application
+python app.py
+
 ```
